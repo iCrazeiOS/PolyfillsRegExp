@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load the polyfill
-const polyfillPath = path.join(__dirname, '..', 'scripts', 'RegExp.js');
+const polyfillPath = path.join(__dirname, '..', 'scripts-priority', 'RegExp.js');
 const polyfillCode = fs.readFileSync(polyfillPath, 'utf8');
 
 // Execute the polyfill in a new context
@@ -21,7 +21,10 @@ const context = {
     clearTimeout: clearTimeout,
     setInterval: setInterval,
     clearInterval: clearInterval,
-    global: global
+    global: global,
+    globalThis: global,
+    window: { location: { hostname: 'example.com' } },
+    self: global,
 };
 
 // Store original RegExp

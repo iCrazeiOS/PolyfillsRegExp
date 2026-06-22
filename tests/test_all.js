@@ -27,7 +27,7 @@ function runTest(name, testFn) {
     }
 }
 
-// Load the polyfill
+require('./setup');
 require('../scripts-priority/RegExp.js');
 
 console.log("RegExp Lookbehind Polyfill - Comprehensive Test Suite");
@@ -50,32 +50,28 @@ runTest("Global Lookbehind Pattern", () => {
     return matches && matches.length === 3;
 });
 
-// 2. Partial Replacement Tests
-runTest("Partial Replacement - Bot Pattern", () => {
+// 2. Exact-Match Replacement Tests
+runTest("Exact Replacement - Bot Pattern", () => {
     const regex = new RegExp("(?<! cu)bot", "g");
     const matches = "robot cubot chatbot".match(regex);
-    // After partial replacement, should match all "bot" patterns (3 total)
     return matches && matches.length === 3;
 });
 
-runTest("Partial Replacement - Search Pattern", () => {
+runTest("Exact Replacement - Search Pattern", () => {
     const regex = new RegExp("(?<! (ya|yandex))search", "g");
     const matches = "search yasearch yandexsearch".match(regex);
-    // After partial replacement, should match all "search" patterns (3 total)
     return matches && matches.length === 3;
 });
 
-runTest("Partial Replacement - Mixed Pattern", () => {
+runTest("Embedded Lookbehind - Mixed Pattern", () => {
     const regex = new RegExp("start(?<! cu)bot(end|\\d+)", "g");
     const matches = "startbotend startbot123 startcubotend".match(regex);
-    // Should match patterns where lookbehind was removed but rest preserved
-    return matches && matches.length >= 2;
+    return matches && matches.length === 2;
 });
 
-runTest("Partial Replacement - Word Boundary", () => {
-    const regex = new RegExp("(?<=\\s)word", "g");
-    const matches = " word sword word".match(regex);
-    return matches && matches.length >= 1;
+runTest("Embedded Lookbehind - Not Corrupted By Registry", () => {
+    const regex = new RegExp("my(?<! cu)botanical");
+    return regex.source === "my(?<! cu)botanical" && regex._regexp.source === "mybotanical";
 });
 
 // 3. Full-Pattern Replacement Tests
@@ -121,7 +117,18 @@ runTest("Flags Property Preservation", () => {
 runTest("LastIndex Property (is-regex compatibility)", () => {
     const regex = new RegExp("(?<=abc)def", "g");
     const descriptor = Object.getOwnPropertyDescriptor(regex, 'lastIndex');
-    return descriptor && descriptor.writable && typeof regex.lastIndex === 'number';
+    const hasOwnDataProperty = descriptor &&
+        Object.prototype.hasOwnProperty.call(descriptor, 'value');
+    let isRegexPass = false;
+    try {
+        isRegexPass = require('is-regex')(regex);
+    } catch (e) {
+        isRegexPass = false;
+    }
+    return hasOwnDataProperty &&
+        descriptor.writable &&
+        typeof regex.lastIndex === 'number' &&
+        isRegexPass;
 });
 
 // 6. RegExp Static Properties Tests
@@ -193,12 +200,42 @@ runTest("Nested String Operations", () => {
     return typeof result === 'string' && result.length > 0;
 });
 
-runTest("Multiple Replacements in Same Pattern", () => {
-    // Test a pattern that might have multiple partial replacements applied
-    const regex = new RegExp("(?<! cu)bot.*(?<=\\s)word", "g");
-    const test = "robot word cubot word chatbot word";
-    const matches = test.match(regex);
-    return matches !== null; // Should work even if partially replaced
+runTest("Multiple Lookbehind Assertions", () => {
+    const regex = new RegExp("(?<=ab)(?<=b)c");
+    return regex.test("abc") && regex.test("xabc") && !regex.test("abbc");
+});
+
+runTest("Case-Insensitive Lookbehind", () => {
+    const regex = new RegExp("(?<=ABC)def", "i");
+    return regex.test("abcdef") && regex.test("ABCdef");
+});
+
+runTest("Escaped Literal Lookbehind", () => {
+    const regex = new RegExp("(?<=\\.)@");
+    return regex.test(".@") && !regex.test("a@");
+});
+
+runTest("String.replace Capture Substitution", () => {
+    const result = "abc".replace(new RegExp("(?<=a)(b)"), "$1-ok");
+    return result === "ab-okc";
+});
+
+runTest("RegExp Static Aliases", () => {
+    new RegExp("(a)(b)").exec("ab");
+    return RegExp.$1 === "a" && RegExp.$2 === "b" && RegExp["$&"] === "ab";
+});
+
+runTest("Complex Lookbehind Throws In Test Mode", () => {
+    const previous = globalThis.__isTest;
+    globalThis.__isTest = true;
+    try {
+        new RegExp("(?<!complex[a-z]+)pattern");
+        return false;
+    } catch (error) {
+        return error instanceof SyntaxError;
+    } finally {
+        globalThis.__isTest = previous;
+    }
 });
 
 // Summary
@@ -209,7 +246,7 @@ if (testResults.failed === 0) {
     console.log("\n🎉 All tests passed! The polyfill is working correctly.");
     console.log("\nFeatures verified:");
     console.log("✓ Basic lookbehind polyfill");
-    console.log("✓ Partial lookbehind replacements");
+    console.log("✓ Exact-match replacements");
     console.log("✓ Full pattern replacements");
     console.log("✓ String method integration");
     console.log("✓ Property preservation");

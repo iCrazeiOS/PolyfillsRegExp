@@ -11,7 +11,7 @@ js:
 				if [ -f "$$file" ]; then \
 					base=$$(basename "$$file" .js); \
 					npx babel "$$file" --out-file "$(ASSETS_PATH)/$$dir/16.4/$$base.js"; \
-					npx uglify-js "$(ASSETS_PATH)/$$dir/16.4/$$base.js" -o "$(ASSETS_PATH)/$$dir/16.4/$$base.min.js"; \
+					npx uglify-js "$(ASSETS_PATH)/$$dir/16.4/$$base.js" -c -m -o "$(ASSETS_PATH)/$$dir/16.4/$$base.min.js"; \
 					rm -f "$(ASSETS_PATH)/$$dir/16.4/$$base.js"; \
 				fi; \
 			done; \

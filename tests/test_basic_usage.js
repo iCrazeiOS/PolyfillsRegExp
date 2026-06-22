@@ -1,6 +1,6 @@
 // Simple test demonstrating basic usage of the RegExp Lookbehind Polyfill
 
-// Load the polyfill
+require('./setup');
 require('../scripts-priority/RegExp.js');
 
 console.log("RegExp Lookbehind Polyfill - Basic Usage Examples");

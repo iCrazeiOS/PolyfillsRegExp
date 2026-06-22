@@ -6,7 +6,7 @@ const beforePolyfill = /[^A-Z0-9]+/gi;
 console.log('beforePolyfill instanceof RegExp:', beforePolyfill instanceof RegExp);
 console.log('beforePolyfill constructor:', beforePolyfill.constructor.name);
 
-// Load the polyfill
+require('./setup');
 require('../scripts-priority/RegExp.js');
 
 // Test after polyfill

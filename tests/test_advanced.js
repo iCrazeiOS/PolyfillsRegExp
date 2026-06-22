@@ -3,17 +3,16 @@
 console.log("RegExp Lookbehind Polyfill - Advanced Usage");
 console.log("=".repeat(50));
 
-// Test 1: Custom partial replacements
-console.log("\n1. Adding Custom Partial Replacements:");
-globalThis.__lookbehind_partial_replacements = globalThis.__lookbehind_partial_replacements || [];
-globalThis.__lookbehind_partial_replacements.push({
+require('./setup');
+require('../scripts-priority/RegExp.js');
+
+// Test 1: Custom exact-match replacements
+console.log("\n1. Adding Custom Exact-Match Replacements:");
+globalThis.__lookbehind_regex_replacements.push({
     original: "(?<!test)custom",
     replacement: "custom",
     description: "Remove test lookbehind for custom"
 });
-
-// Load the polyfill AFTER setting custom replacements
-require('../scripts-priority/RegExp.js');
 
 const customRegex = new RegExp('(?<!test)custom', 'g');
 const customText = "testcustom mycustom othercustom";

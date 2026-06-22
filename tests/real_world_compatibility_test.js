@@ -1,14 +1,16 @@
 // Test that the polyfill passes real-world RegExp checking code like is-regex library
+require('./setup');
 require('../scripts-priority/RegExp.js');
 
-console.log('Testing with real-world RegExp checking patterns...\n');
+const isRegex = require('is-regex');
 
-// Simulate the is-regex library's main check
-function isRegExp(value) {
-    return Object.prototype.toString.call(value) === '[object RegExp]';
+function hasOwnLastIndexDataProperty(value) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, 'lastIndex');
+    return !!(descriptor && Object.prototype.hasOwnProperty.call(descriptor, 'value'));
 }
 
-// Test various RegExp instances
+console.log('Testing with real is-regex and lastIndex checks...\n');
+
 const tests = [
     { name: 'Native RegExp', regex: /test/g },
     { name: 'Polyfilled RegExp (no lookbehind)', regex: new RegExp('test', 'g') },
@@ -21,41 +23,30 @@ let passed = 0;
 let total = tests.length;
 
 tests.forEach(test => {
-    const result = isRegExp(test.regex);
-    console.log(`${test.name}: ${result ? '✓' : '✗'} ${result ? 'PASS' : 'FAIL'}`);
-    if (result) passed++;
-    
-    // Additional checks
+    const isRegexResult = isRegex(test.regex);
+    const lastIndexResult = hasOwnLastIndexDataProperty(test.regex);
+    const pass = isRegexResult && lastIndexResult;
+    console.log(`${test.name}: ${pass ? '✓' : '✗'} ${pass ? 'PASS' : 'FAIL'}`);
+    if (pass) passed++;
+
+    console.log(`  is-regex: ${isRegexResult}`);
+    console.log(`  own lastIndex data property: ${lastIndexResult}`);
     console.log(`  instanceof RegExp: ${test.regex instanceof RegExp}`);
-    console.log(`  .source: ${test.regex.source}`);
-    console.log(`  .flags: ${test.regex.flags}`);
+    console.log(`  Object.prototype.toString: ${Object.prototype.toString.call(test.regex)}`);
     console.log(`  .test() works: ${test.regex.test('test')}`);
     console.log('');
 });
 
 console.log(`Summary: ${passed}/${total} tests passed`);
-if (passed === total) {
-    console.log('🎉 All RegExp compatibility tests passed!');
-} else {
-    console.log('❌ Some tests failed!');
+if (passed !== total) {
     process.exit(1);
 }
 
-// Test the specific use case from the user's question
-console.log('\n=== Testing User\'s Original Issue ===');
-console.log('Testing the exact check from user\'s code:');
+const fake = {};
+Object.setPrototypeOf(fake, RegExp.prototype);
+if (isRegex(fake)) {
+    console.log('✗ spoofed RegExp.prototype object incorrectly passed is-regex');
+    process.exit(1);
+}
 
-const T = Object.prototype.toString;
-const testRegexes = [
-    new RegExp('test'),
-    new RegExp('(?<=foo)bar'),
-    new RegExp('(?<!\\.)@example\\.com'),
-    /native/g
-];
-
-testRegexes.forEach((regex, i) => {
-    const result = T.call(regex) === "[object RegExp]";
-    console.log(`Regex ${i + 1}: ${result ? '✓' : '✗'} ${result ? 'PASS' : 'FAIL'} - ${regex.source}`);
-});
-
-console.log('\n✅ The polyfill now passes Object.prototype.toString.call() checks!');
+console.log('✅ Polyfilled RegExp instances pass is-regex and lastIndex checks');
